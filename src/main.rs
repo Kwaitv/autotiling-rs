@@ -3,6 +3,34 @@ use swayipc::{Event, NodeLayout, NodeType, WindowChange};
 
 use clap::Parser;
 
+#[cfg(debug_assertions)] use std::fs::File;
+use std::env::var;
+
+
+fn start_daemon() -> Result<(), std::io::Error> {
+    let dir = var("XDG_RUNTIME_DIR").unwrap_or("/tmp".to_string());
+    let pid_file = format!("{}/sway-autotiling.pid", dir);
+
+    #[cfg(debug_assertions)] {
+    let stdout_file = File::create("/dev/stdout")?;
+    Ok(daemonize::Daemonize::new()
+        .pid_file(pid_file)
+        .chown_pid_file(true)
+        .working_directory(dir)
+        .stdout(stdout_file)
+        .start()
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?)
+    }
+    #[cfg(not(debug_assertions))] {
+    Ok(daemonize::Daemonize::new()
+        .pid_file(pid_file)
+        .chown_pid_file(true)
+        .working_directory(dir)
+        .start()
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?)
+    }
+}
+
 fn switch_splitting(conn: &mut Connection, workspaces: &[i32]) -> Result<(), String> {
     // Check if focused workspace is in "allowed list".
     // If `workspaces` is empty, skip allow all workspaces.
@@ -68,6 +96,8 @@ struct Cli {
 
 fn main() -> Result<(), std::io::Error> {
     let args = Cli::parse();
+
+    start_daemon()?;
 
     let mut conn = Connection::new().unwrap();
     for event in Connection::new()
