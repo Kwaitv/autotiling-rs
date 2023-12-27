@@ -6,7 +6,8 @@ description = "Autotiling for sway (and possibly i3)"
 edition = "2018"
 
 [dependencies]
-swayipc = "3.0"
+swayipc = ">=3.0"
+daemonize = ">=0.5"
 
 [dependencies.clap]
 version = "3.0"
